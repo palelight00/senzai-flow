@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0a7c86" />
+<title>洗剤記録 — 浴槽自動洗浄</title>
+<meta name="description" content="浴槽自動洗浄の洗剤量を手早く記録するためのアプリ" />
+
+<!-- PWA / iOS home screen -->
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="洗剤記録" />
+
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="level-row">
+    <div class="level-text">
+      <span class="level-label">推定残量</span>
+      <span id="levelValue" class="level-value">—</span>
+      <span class="level-cap">/ 850 ml</span>
+    </div>
+    <span id="signalBadge" class="badge badge-unknown">—</span>
+  </div>
+  <div class="level-bar"><div id="levelFill" class="level-fill"></div></div>
+
+  <div class="date-row">
+    <label class="date-label" for="recordDate">記録する日</label>
+    <input type="date" id="recordDate" class="date-input" />
+    <button id="todayBtn" class="today-btn" type="button">今日</button>
+  </div>
+  <div id="dateNotice" class="date-notice" hidden></div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-tab="record" type="button">記録</button>
+  <button class="tab" data-tab="history" type="button">履歴</button>
+  <button class="tab" data-tab="data" type="button">データ</button>
+</nav>
+
+<main>
+  <!-- 記録タブ -->
+  <section id="tab-record" class="tab-panel active">
+    <div class="record-buttons">
+      <div class="add-group">
+        <button id="addBtn" class="rec-btn rec-add" type="button">
+          <span class="rec-title">洗剤追加</span>
+          <span class="rec-sub">バスマジックリン詰め替え</span>
+        </button>
+        <div id="addChips" class="add-chips" hidden>
+          <button class="chip" type="button" data-amount="300">×1 ＝ +300ml</button>
+          <button class="chip" type="button" data-amount="600">×2 ＝ +600ml</button>
+        </div>
+      </div>
+
+      <button class="rec-btn rec-low" type="button" data-type="low">
+        <span class="rec-title">low シグナル</span>
+        <span class="rec-sub">残量 350ml 未満</span>
+      </button>
+
+      <button class="rec-btn rec-min" type="button" data-type="min">
+        <span class="rec-title">min シグナル</span>
+        <span class="rec-sub">残量 150ml 未満</span>
+      </button>
+
+      <button class="rec-btn rec-rest" type="button" data-type="rest">
+        <span class="rec-title">洗浄休み</span>
+        <span class="rec-sub">この日は洗浄なし</span>
+      </button>
+    </div>
+
+    <details class="note-box" id="noteBox">
+      <summary>備考を追加（任意）</summary>
+      <textarea id="noteInput" class="note-input" rows="2" placeholder="気づいたこと・外気温・2回洗浄 など"></textarea>
+      <p class="note-hint">入力後にボタンを押すと、その記録に備考が付きます。</p>
+    </details>
+  </section>
+
+  <!-- 履歴タブ -->
+  <section id="tab-history" class="tab-panel">
+    <div class="history-summary" id="historySummary"></div>
+    <ul id="historyList" class="history-list"></ul>
+    <p id="historyEmpty" class="empty-msg" hidden>まだ記録がありません。「データ」タブから過去データを読み込めます。</p>
+  </section>
+
+  <!-- データタブ -->
+  <section id="tab-data" class="tab-panel">
+    <div class="data-card">
+      <h2>バックアップ</h2>
+      <p class="data-desc">記録はこの端末のブラウザ内だけに保存されます。定期的に書き出して保管してください。</p>
+      <button id="exportJsonBtn" class="data-btn" type="button">JSON で書き出し</button>
+      <button id="exportCsvBtn" class="data-btn" type="button">CSV で書き出し（分析用）</button>
+    </div>
+
+    <div class="data-card">
+      <h2>読み込み（インポート）</h2>
+      <p class="data-desc">書き出した JSON ファイルを読み込みます。初回の過去データもここから取り込みます。</p>
+      <input type="file" id="importFile" accept="application/json,.json" hidden />
+      <button id="importBtn" class="data-btn" type="button">JSON ファイルを選ぶ</button>
+    </div>
+
+    <div class="data-card">
+      <h2>設定</h2>
+      <ul class="config-list" id="configList"></ul>
+    </div>
+
+    <div class="data-card danger">
+      <h2>全消去</h2>
+      <p class="data-desc">この端末の記録をすべて削除します（取り消せません）。</p>
+      <button id="resetBtn" class="data-btn danger-btn" type="button">すべて削除</button>
+    </div>
+  </section>
+</main>
+
+<!-- トースト（Undo・備考） -->
+<div id="toast" class="toast" hidden>
+  <span id="toastMsg" class="toast-msg"></span>
+  <div class="toast-actions">
+    <button id="toastNote" class="toast-btn" type="button">備考</button>
+    <button id="toastUndo" class="toast-btn" type="button">取り消し</button>
+  </div>
+</div>
+
+<!-- 編集モーダル -->
+<div id="editModal" class="modal" hidden>
+  <div class="modal-box">
+    <h2 class="modal-title">記録を編集</h2>
+    <label class="field">
+      <span>日付</span>
+      <input type="date" id="editDate" />
+    </label>
+    <label class="field">
+      <span>種別</span>
+      <select id="editType">
+        <option value="add">洗剤追加</option>
+        <option value="low">low シグナル</option>
+        <option value="min">min シグナル</option>
+        <option value="rest">洗浄休み</option>
+      </select>
+    </label>
+    <label class="field" id="editAmountField">
+      <span>追加量 (ml)</span>
+      <select id="editAmount">
+        <option value="300">300ml（×1）</option>
+        <option value="600">600ml（×2）</option>
+      </select>
+    </label>
+    <label class="field">
+      <span>備考</span>
+      <textarea id="editNote" rows="2"></textarea>
+    </label>
+    <div class="modal-actions">
+      <button id="editDelete" class="modal-btn danger-btn" type="button">削除</button>
+      <span class="spacer"></span>
+      <button id="editCancel" class="modal-btn" type="button">キャンセル</button>
+      <button id="editSave" class="modal-btn primary-btn" type="button">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- インポート方法モーダル -->
+<div id="importModal" class="modal" hidden>
+  <div class="modal-box">
+    <h2 class="modal-title">読み込み方法</h2>
+    <p id="importInfo" class="modal-desc"></p>
+    <div class="modal-actions vertical">
+      <button id="importMerge" class="modal-btn primary-btn" type="button">追加（マージ）— 重複は除外</button>
+      <button id="importReplace" class="modal-btn danger-btn" type="button">置き換え — 既存を消して入替</button>
+      <button id="importCancel" class="modal-btn" type="button">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

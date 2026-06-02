@@ -1,0 +1,12 @@
+# 記録データは GitHub に載せない（プライバシー）
+senzai-flow-records.json
+senzai-flow-*.json
+*-records.json
+/data/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
