@@ -353,4 +353,72 @@ body {
 .modal-actions.vertical .modal-btn { width: 100%; }
 .primary-btn { background: var(--teal); border-color: var(--teal); color: #fff; }
 
+/* ---------- 分析タブ ---------- */
+.an-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.an-controls label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.an-controls select {
+  font-size: 15px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.an-controls .an-check { gap: 6px; }
+.an-controls .an-check input { width: 18px; height: 18px; }
+
+.an-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.an-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.an-card-title { font-size: 12px; color: var(--muted); }
+.an-card-value { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.an-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 10px;
+  margin-bottom: 14px;
+}
+.chart-title { font-size: 14px; margin: 4px 6px 8px; color: var(--text); }
+.chart-card svg { display: block; }
+
+.weather-range { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.weather-range label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.weather-range input {
+  font-size: 16px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.weather-status { font-size: 13px; color: var(--muted); margin: 12px 0 0; }
+
+.an-table-wrap { overflow-x: auto; }
+.an-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.an-table th, .an-table td {
+  padding: 8px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+.an-table th:first-child, .an-table td:first-child { text-align: left; }
+.an-table thead th { color: var(--muted); font-weight: 600; }
+
+.an-foot { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 4px 2px 0; }
+
 [hidden] { display: none !important; }

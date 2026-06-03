@@ -41,6 +41,7 @@
 <nav class="tabs">
   <button class="tab active" data-tab="record" type="button">記録</button>
   <button class="tab" data-tab="history" type="button">履歴</button>
+  <button class="tab" data-tab="analysis" type="button">分析</button>
   <button class="tab" data-tab="data" type="button">データ</button>
 </nav>
 
@@ -87,6 +88,56 @@
     <div class="history-summary" id="historySummary"></div>
     <ul id="historyList" class="history-list"></ul>
     <p id="historyEmpty" class="empty-msg" hidden>まだ記録がありません。「データ」タブから過去データを読み込めます。</p>
+  </section>
+
+  <!-- 分析タブ -->
+  <section id="tab-analysis" class="tab-panel">
+    <div class="an-controls">
+      <label>集計
+        <select id="analysisBy">
+          <option value="overall">全体</option>
+          <option value="year">年</option>
+          <option value="season" selected>季節</option>
+          <option value="month">月</option>
+        </select>
+      </label>
+      <label>気温
+        <select id="analysisField">
+          <option value="mean" selected>平均</option>
+          <option value="min">最低</option>
+          <option value="max">最高</option>
+        </select>
+      </label>
+      <label class="an-check"><input type="checkbox" id="analysisIncludeEst" checked> 推定区間も含める</label>
+    </div>
+
+    <div id="analysisSummary" class="an-summary"></div>
+
+    <div class="chart-card" id="chartBars"></div>
+    <div class="chart-card" id="chartSeries"></div>
+
+    <div class="data-card">
+      <h2>気温データ（秋田市）</h2>
+      <p class="data-desc">外気温と1回あたり消費量の関係を調べます。自動取得（Open-Meteo・無料・鍵不要）か、気象庁などのCSVを読み込めます。</p>
+      <div class="weather-range">
+        <label>開始 <input type="date" id="weatherStart" /></label>
+        <label>終了 <input type="date" id="weatherEnd" /></label>
+      </div>
+      <button id="weatherFetchBtn" class="data-btn" type="button">秋田市の気温を自動取得</button>
+      <input type="file" id="weatherCsvFile" accept=".csv,text/csv" hidden />
+      <button id="weatherCsvBtn" class="data-btn" type="button">気温CSVを読み込む</button>
+      <p id="weatherStatus" class="weather-status">気温データ未取得</p>
+    </div>
+
+    <div class="chart-card" id="chartScatter"></div>
+    <div class="chart-card" id="chartOverlay"></div>
+
+    <div class="data-card">
+      <h2>集計表</h2>
+      <div class="an-table-wrap" id="analysisTable"></div>
+    </div>
+
+    <p class="an-foot">※ 1回あたり消費量は「low(350ml)／min(150ml)／追加後」の残量を起点に、区間の消費量÷洗浄回数で算出（1日1回洗浄・休みを除外と仮定）。観測=●（バイアスなし）／推定=○（追加時の残量仮定に依存）。2回洗浄日は1回として数えるため過大評価になり得ます。</p>
   </section>
 
   <!-- データタブ -->
