@@ -1,0 +1,7 @@
+# 個人利用のアプリのため、検索エンジンには載せない。
+# 注意: GitHub Pages のプロジェクトサイト（/senzai-flow/ 配下）では
+# このファイルはクローラに参照されない（robots.txt はドメイン直下のみ有効）。
+# 実際に効くのは index.html の <meta name="robots" content="noindex"> の方。
+# ここに置くのは、独自ドメインやユーザーサイトへ移した場合の保険。
+User-agent: *
+Disallow: /

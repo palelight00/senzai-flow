@@ -1,6 +1,6 @@
 /* service worker — アプリシェルをキャッシュしてオフライン動作させる。
    データ(localStorage)はキャッシュ対象ではない。 */
-const CACHE = 'senzai-flow-v2';
+const CACHE = 'senzai-flow-v3';
 
 // 相対パスで列挙（GitHub Pages のサブパス配信に対応）
 const ASSETS = [

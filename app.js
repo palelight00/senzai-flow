@@ -409,7 +409,11 @@ function applyImport(mode) {
       if (!existing.has(e.id)) { state.events.push(e); existing.add(e.id); }
     }
     state.config = { ...state.config, ...pendingImport.config };
-    if (pendingImportWeather) Object.assign(weather.daily, pendingImportWeather.daily);
+    if (pendingImportWeather) {
+      Object.assign(weather.daily, pendingImportWeather.daily);
+      // 地点が未設定の端末では、読み込んだデータの地点を引き継ぐ（機種変更時など）
+      if (!weather.location && pendingImportWeather.location) weather.location = pendingImportWeather.location;
+    }
   }
   pendingImport = null;
   pendingImportWeather = null;
@@ -562,17 +566,55 @@ function wireUp() {
   }
   if ($('#weatherEnd') && !$('#weatherEnd').value) $('#weatherEnd').value = todayStr();
 
+  // 観測地点の設定
+  $('#locSaveBtn').addEventListener('click', () => {
+    const loc = normalizeLocation({
+      name: $('#locName').value,
+      lat: $('#locLat').value,
+      lon: $('#locLon').value,
+    });
+    if (!loc) {
+      showToast('緯度・経度を入力してください（緯度 -90〜90 / 経度 -180〜180）');
+      return;
+    }
+    weather.location = loc;
+    saveWeather();
+    document.activeElement && document.activeElement.blur();
+    renderAnalysis();
+    showToast(`観測地点を「${loc.name}」に設定しました`);
+  });
+
+  $('#locGeoBtn').addEventListener('click', () => {
+    if (!navigator.geolocation) { showToast('この端末では現在地を取得できません'); return; }
+    const btn = $('#locGeoBtn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '取得中…';
+    const done = () => { btn.disabled = false; btn.textContent = label; };
+    navigator.geolocation.getCurrentPosition(pos => {
+      done();
+      // 小数2桁（約1km）に丸めて、住居が特定できる精度では扱わない
+      $('#locLat').value = (Math.round(pos.coords.latitude * 100) / 100).toFixed(2);
+      $('#locLon').value = (Math.round(pos.coords.longitude * 100) / 100).toFixed(2);
+      if (!$('#locName').value.trim()) $('#locName').value = '現在地';
+      showToast('現在地を入力しました。「地点を保存」で確定してください');
+    }, err => {
+      done();
+      showToast('現在地の取得に失敗: ' + ((err && err.message) || '不明'));
+    }, { timeout: 10000, maximumAge: 600000 });
+  });
+
   $('#weatherFetchBtn').addEventListener('click', async () => {
     const s = $('#weatherStart').value || (state.events.length ? sortEvents(state.events)[0].date : todayStr());
     const e = $('#weatherEnd').value || todayStr();
     const btn = $('#weatherFetchBtn');
-    const label = btn.textContent;
+    btn.dataset.busy = '1';
     btn.disabled = true;
     btn.textContent = '取得中…';
-    const res = await fetchAkitaWeather(s, e);
+    const res = await fetchWeather(s, e);
+    delete btn.dataset.busy;
     btn.disabled = false;
-    btn.textContent = label;
-    renderAnalysis();
+    renderAnalysis();  // ボタン文言は renderWeatherLocation が戻す
     if (res.ok) {
       showToast(`気温を ${res.fetchedDays} 日分 取得しました${res.missingRecent ? '（直近約6日はアーカイブ未掲載）' : ''}`);
     } else {
@@ -730,10 +772,11 @@ function bucketSegments(segments, by, opts = {}) {
 }
 
 /* ============================================================
-   気温データ（秋田市）— ストア / 取得 / CSVインポート
+   気温データ — ストア / 取得 / CSVインポート
+   観測地点は端末ごとの設定。既定値は持たず、利用者が分析タブで設定する。
    ============================================================ */
 function freshWeather() {
-  return { schemaVersion: 1, location: { name: '秋田市', lat: 39.72, lon: 140.1 }, daily: {} };
+  return { schemaVersion: 1, location: null, daily: {} };
 }
 function loadWeather() {
   try {
@@ -750,10 +793,22 @@ function numOrNull(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+/* 地点を検証して正規化する。緯度経度が不正なら null（＝未設定）。
+   緯度経度は小数2桁（約1km）に丸め、必要以上に細かい位置を保存しない。 */
+function normalizeLocation(obj) {
+  if (!obj || typeof obj !== 'object') return null;
+  const lat = numOrNull(obj.lat);
+  const lon = numOrNull(obj.lon);
+  if (lat == null || lon == null) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  const name = String(obj.name == null ? '' : obj.name).trim().slice(0, 30);
+  return { name: name || '設定した地点', lat: Math.round(lat * 100) / 100, lon: Math.round(lon * 100) / 100 };
+}
+
 function normalizeWeather(obj) {
   const w = freshWeather();
   if (obj && typeof obj === 'object') {
-    if (obj.location && typeof obj.location === 'object') w.location = { ...w.location, ...obj.location };
+    w.location = normalizeLocation(obj.location);
     if (obj.daily && typeof obj.daily === 'object') {
       for (const [d, v] of Object.entries(obj.daily)) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !v || typeof v !== 'object') continue;
@@ -764,14 +819,17 @@ function normalizeWeather(obj) {
   return w;
 }
 
-async function fetchAkitaWeather(startDate, endDate) {
+async function fetchWeather(startDate, endDate) {
+  const loc = weather.location;
+  if (!loc) {
+    return { ok: false, error: '観測地点が未設定です', missingRecent: false, fetchedDays: 0 };
+  }
   const clampEnd = addDays(todayStr(), -6); // archive(ERA5) は直近約5日が未掲載
   let missingRecent = false;
   if (endDate > clampEnd) { endDate = clampEnd; missingRecent = true; }
   if (!startDate || startDate > endDate) {
     return { ok: false, error: '取得できる範囲がありません（約6日前まで）', missingRecent, fetchedDays: 0 };
   }
-  const loc = weather.location;
   let fetchedDays = 0;
   try {
     let chunkStart = startDate;
@@ -1097,12 +1155,30 @@ function anCard(title, value, sub) {
 function chartTitle(t) { return `<h3 class="chart-title">${escapeHtml(t)}</h3>`; }
 
 function renderWeatherStatus() {
+  renderWeatherLocation();
   const el = $('#weatherStatus');
   if (!el) return;
   const days = Object.keys(weather.daily).sort();
+  const locLabel = weather.location ? weather.location.name : '観測地点が未設定';
   el.textContent = days.length
-    ? `気温データ: ${days.length} 日分（${days[0]} 〜 ${days[days.length - 1]}）`
-    : '気温データ未取得';
+    ? `${locLabel}｜気温データ: ${days.length} 日分（${days[0]} 〜 ${days[days.length - 1]}）`
+    : `${locLabel}｜気温データ未取得`;
+}
+
+/* 地点の入力欄とボタン表示を現在の設定に合わせる。
+   入力中の欄は上書きしない（renderAnalysis から繰り返し呼ばれるため）。 */
+function renderWeatherLocation() {
+  const loc = weather.location;
+  const fields = [['#locName', loc ? loc.name : ''], ['#locLat', loc ? loc.lat : ''], ['#locLon', loc ? loc.lon : '']];
+  for (const [sel, val] of fields) {
+    const el = $(sel);
+    if (el && el !== document.activeElement) el.value = val;
+  }
+  const btn = $('#weatherFetchBtn');
+  if (btn && !btn.dataset.busy) {
+    btn.disabled = !loc;
+    btn.textContent = loc ? `${loc.name}の気温を自動取得` : '気温を自動取得（先に地点を設定）';
+  }
 }
 
 function analysisTableHtml(buckets) {

@@ -7,6 +7,10 @@
 <title>洗剤記録 — 浴槽自動洗浄</title>
 <meta name="description" content="浴槽自動洗浄の洗剤量を手早く記録するためのアプリ" />
 
+<!-- 検索エンジンにインデックスさせない（個人利用のため） -->
+<meta name="robots" content="noindex, nofollow" />
+<meta name="googlebot" content="noindex, nofollow" />
+
 <!-- PWA / iOS home screen -->
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
@@ -117,13 +121,27 @@
     <div class="chart-card" id="chartSeries"></div>
 
     <div class="data-card">
-      <h2>気温データ（秋田市）</h2>
+      <h2>気温データ</h2>
       <p class="data-desc">外気温と1回あたり消費量の関係を調べます。自動取得（Open-Meteo・無料・鍵不要）か、気象庁などのCSVを読み込めます。</p>
+
+      <div class="weather-loc">
+        <p class="weather-loc-title">観測地点（この端末にのみ保存されます）</p>
+        <div class="weather-range">
+          <label class="wl-name">地点名 <input type="text" id="locName" maxlength="30" placeholder="例: ○○市" autocomplete="off" /></label>
+        </div>
+        <div class="weather-range">
+          <label>緯度 <input type="number" id="locLat" step="0.01" min="-90" max="90" inputmode="decimal" placeholder="35.68" /></label>
+          <label>経度 <input type="number" id="locLon" step="0.01" min="-180" max="180" inputmode="decimal" placeholder="139.77" /></label>
+        </div>
+        <button id="locSaveBtn" class="data-btn" type="button">地点を保存</button>
+        <button id="locGeoBtn" class="data-btn" type="button">現在地から入力</button>
+      </div>
+
       <div class="weather-range">
         <label>開始 <input type="date" id="weatherStart" /></label>
         <label>終了 <input type="date" id="weatherEnd" /></label>
       </div>
-      <button id="weatherFetchBtn" class="data-btn" type="button">秋田市の気温を自動取得</button>
+      <button id="weatherFetchBtn" class="data-btn" type="button">気温を自動取得</button>
       <input type="file" id="weatherCsvFile" accept=".csv,text/csv" hidden />
       <button id="weatherCsvBtn" class="data-btn" type="button">気温CSVを読み込む</button>
       <p id="weatherStatus" class="weather-status">気温データ未取得</p>

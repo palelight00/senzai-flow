@@ -408,6 +408,17 @@ body {
 }
 .weather-status { font-size: 13px; color: var(--muted); margin: 12px 0 0; }
 
+.weather-loc {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.weather-loc-title { font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+.weather-range label.wl-name { flex: 1 1 100%; }
+.weather-range label.wl-name input { flex: 1 1 auto; min-width: 0; }
+.data-btn[disabled] { opacity: .5; border-color: var(--line); color: var(--muted); }
+
 .an-table-wrap { overflow-x: auto; }
 .an-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .an-table th, .an-table td {
